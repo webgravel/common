@@ -28,15 +28,23 @@ class _Table(object):
         except:
             self.data = Object()
             self.exists = False
-        self.setup()
+        self._setup()
 
-    def setup(self):
+    def _setup(self):
         for k, v in self.default.items():
             if not hasattr(self.data, k):
                 setattr(self.data, k, v)
+        self.setup()
+
+    def setup(self):
+        pass
 
     def save(self):
         self.table[self.name] = self.data
+
+    @classmethod
+    def all(cls):
+        return map(cls, cls.table.keys())
 
     def __enter__(self):
         self.table.lock_all()
