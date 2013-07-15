@@ -2,3 +2,4 @@ name: gravel-common
 requires-apt: python2.7 python-tdb python-yaml
 symlinks:
 - [dbtool.py, /usr/local/bin/graveldbtool]
+- [addlineifnothere.py, /usr/local/bin/addlineifnothere]
