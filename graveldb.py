@@ -19,7 +19,12 @@ def Table(name, path):
 class _Table(object):
     def __init__(self, name):
         self.name = name
-        self.data = self.table.get(name, Object())
+        try:
+            self.data = self.table[name]
+            self.exists = True
+        except:
+            self.data = Object()
+            self.exists = False
         self.setup()
 
     def setup(self):
