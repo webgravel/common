@@ -13,6 +13,9 @@ class TDBShelf(shelve.Shelf):
     def unlock_all(self):
         self.db.unlock_all()
 
+    def keys(self):
+        return list(self.db.iterkeys())
+
 def Table(name, path):
     return type(name, (_Table,), {'table': TDBShelf(path + '/' + name)})
 
@@ -47,3 +50,6 @@ class Object(object):
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+    def __repr__(self):
+        return '<Object %s>' % self.__dict__
