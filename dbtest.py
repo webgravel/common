@@ -1,7 +1,7 @@
 import graveldb
 
 class Screw(graveldb.Table('Screw', '/tmp')):
-    default = lambda self: graveldb.Object(size=1)
+    default = dict(size=1)
 
 s = Screw('foo')
 with s:

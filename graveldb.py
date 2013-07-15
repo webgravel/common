@@ -19,7 +19,13 @@ def Table(name, path):
 class _Table(object):
     def __init__(self, name):
         self.name = name
-        self.data = self.table.get(name, self.default())
+        self.data = self.table.get(name, Object())
+        self.setup()
+
+    def setup(self):
+        for k, v in self.default.items():
+            if not hasattr(self.data, k):
+                setattr(self.data, k, v)
 
     def save(self):
         self.table[self.name] = self.data
@@ -30,7 +36,7 @@ class _Table(object):
     def __exit__(self, *args):
         self.table.unlock_all()
 
-    default = lambda self: Object()
+    default = {}
 
 class Object(object):
     def __init__(self, **kwargs):
