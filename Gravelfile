@@ -1,2 +1,2 @@
 name: gravel-common
-requires-apt: python2.7 python-gdbm python-yaml
+requires-apt: python2.7 python-tdb python-yaml
