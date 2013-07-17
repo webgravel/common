@@ -1,6 +1,7 @@
 import tempfile
 import os
 import urllib
+import subprocess
 
 def reformat_ssh_key(data):
     ''' Returns data as a well formed ssh-rsa key '''
@@ -54,3 +55,18 @@ def write_authorized_keys(keys, user=''):
     out.write(AUTOGEN_END)
     out.close()
     os.rename(out.name, path)
+
+def call(address, *args, **kwargs):
+    key = kwargs.get('key')
+    if ':' in address:
+        hostname, port = address.split(':')
+    else:
+        hostname = address
+        port = None
+    opts = ['-o', 'StrictHostKeyChecking=no']
+    if key:
+        opts += ['-i', key]
+    if port:
+        opts += ['-p', port]
+    return subprocess.check_output([
+        'ssh', ] + opts + [hostname, '--'] + list(args))
