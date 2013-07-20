@@ -1,11 +1,27 @@
-import shelve
 import tdb
+import bson
 import os
 
-class TDBShelf(shelve.Shelf):
+from bson.binary import Binary
+
+class TDBShelf(object):
     def __init__(self, path):
         self.db = tdb.open(path, flags=os.O_RDWR | os.O_CREAT)
-        shelve.Shelf.__init__(self, self.db)
+
+    def __getitem__(self, name):
+        return self._unpickle(self.db[name])
+
+    def __setitem__(self, name, val):
+        self.db[name] = self._pickle(val)
+
+    def __delitem__(self, name):
+        del self.db[name]
+
+    def close(self):
+        self.db.close()
+
+    def __del__(self):
+        self.close()
 
     def lock_all(self):
         self.db.lock_all()
@@ -16,8 +32,16 @@ class TDBShelf(shelve.Shelf):
     def keys(self):
         return list(self.db.iterkeys())
 
+class TDB_BSON_Shelf(TDBShelf):
+    def _pickle(self, val):
+        return bson.BSON.encode(val.__dict__)
+
+    def _unpickle(self, val):
+        decoded = bson.BSON(val).decode()
+        return Object(**decoded)
+
 def Table(name, path):
-    return type(name, (_Table,), {'table': TDBShelf(path + '/' + name)})
+    return type(name, (_Table,), {'table': TDB_BSON_Shelf(path + '/' + name)})
 
 class _Table(object):
     def __init__(self, name):
@@ -49,8 +73,10 @@ class _Table(object):
     def __enter__(self):
         self.table.lock_all()
 
-    def __exit__(self, *args):
+    def __exit__(self, type, value, tb):
         self.table.unlock_all()
+        if type:
+            raise
 
     default = {}
 

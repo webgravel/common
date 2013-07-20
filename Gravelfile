@@ -1,5 +1,5 @@
 name: gravel-common
-requires-apt: python2.7 python-tdb python-yaml libpcre3
+requires-apt: python2.7 python-tdb python-yaml libpcre3 python-bson-ext
 symlinks:
 - [dbtool.py, /usr/local/bin/graveldbtool]
 - [addlineifnothere.py, /usr/local/bin/addlineifnothere]
