@@ -9,13 +9,13 @@ class TDBShelf(object):
         self.db = tdb.open(path, flags=os.O_RDWR | os.O_CREAT)
 
     def __getitem__(self, name):
-        return self._unpickle(self.db[name])
+        return self._unpickle(self.db[_mkkey(name)])
 
     def __setitem__(self, name, val):
-        self.db[name] = self._pickle(val)
+        self.db[_mkkey(name)] = self._pickle(val)
 
     def __delitem__(self, name):
-        del self.db[name]
+        del self.db[_mkkey(name)]
 
     def close(self):
         self.db.close()
@@ -31,6 +31,12 @@ class TDBShelf(object):
 
     def keys(self):
         return list(self.db.iterkeys())
+
+def _mkkey(k):
+    if isinstance(k, (str, int)):
+        return str(k)
+    else:
+        raise TypeError('expected str or int')
 
 class TDB_BSON_Shelf(TDBShelf):
     def _pickle(self, val):
