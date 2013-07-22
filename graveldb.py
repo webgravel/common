@@ -32,6 +32,14 @@ class TDBShelf(object):
     def keys(self):
         return list(self.db.iterkeys())
 
+    def __enter__(self):
+        self.lock_all()
+
+    def __exit__(self, type, value, tb):
+        self.unlock_all()
+        if type:
+            raise
+
 def _mkkey(k):
     if isinstance(k, (str, int)):
         return str(k)
@@ -77,12 +85,10 @@ class _Table(object):
         return map(cls, cls.table.keys())
 
     def __enter__(self):
-        self.table.lock_all()
+        return self.table.__enter__()
 
     def __exit__(self, type, value, tb):
-        self.table.unlock_all()
-        if type:
-            raise
+        return self.table.__exit__(type, value, tb)
 
     default = {}
 
