@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import gravelrpc
+from gravelrpc import FD
 
 parser = argparse.ArgumentParser()
 parser.add_argument('name')

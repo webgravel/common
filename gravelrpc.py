@@ -52,6 +52,7 @@ class Client(object):
         doc = dict(name=name, args=args, kwargs=kwargs)
         if '_fds' in kwargs:
             doc['fds'] = kwargs['_fds']
+            kwargs['_fds'] = None
         write_bson(sock, doc)
         result = read_bson(sock)
         if 'error' in result:
@@ -77,7 +78,9 @@ def write_bson(sock, doc):
 
     sock.send(struct.pack('!I', len(fds)))
     for fd in fds:
-        passfd.sendfd(sock, fd, 'whatever')
+        if not isinstance(fd, FD):
+            raise TypeError('fds need to be instances of FD (not %r)' % fd)
+        passfd.sendfd(sock, fd.fileno(), 'whatever')
 
     sock.sendall(bson.BSON.encode(doc))
     sock.shutdown(socket.SHUT_WR)
