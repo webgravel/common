@@ -58,7 +58,9 @@ def Table(name, path):
     return type(name, (_Table,), {'table': TDB_BSON_Shelf(path + '/' + name)})
 
 class _Table(object):
-    def __init__(self, name):
+    autocreate = True
+
+    def __init__(self, name, autocreate=None):
         self.name = name
         try:
             self.data = self.table[name]
@@ -66,6 +68,10 @@ class _Table(object):
         except:
             self.data = Object()
             self.exists = False
+        if autocreate is None:
+            autocreate = self.autocreate
+        if not self.exists and not autocreate:
+            raise KeyError(name)
         self._setup()
 
     def _setup(self):
@@ -73,11 +79,16 @@ class _Table(object):
             if not hasattr(self.data, k):
                 setattr(self.data, k, v)
         self.setup()
+        self.validate()
 
     def setup(self):
         pass
 
+    def validate(self):
+        pass
+
     def save(self):
+        self.validate()
         self.table[self.name] = self.data
 
     @classmethod
@@ -99,3 +110,6 @@ class Object(object):
 
     def __repr__(self):
         return '<Object %s>' % self.__dict__
+
+class RaceConditionError(Exception):
+    pass
