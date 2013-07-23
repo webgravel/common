@@ -21,7 +21,7 @@ class RPCHandler(SocketServer.StreamRequestHandler):
     allow_fd_passing = False
 
     def handle(self):
-        req = read_bson(self.request, allow_fd_passing=self.allow_fd_passing)
+        req = _rpc_read_bson(self.request, allow_fd_passing=self.allow_fd_passing)
         try:
             if 'fds' in req:
                 req['kwargs']['_fds'] = req['fds']
@@ -31,7 +31,7 @@ class RPCHandler(SocketServer.StreamRequestHandler):
             doc = dict(error=str(err))
         else:
             doc = dict(result=result)
-        write_bson(self.request, doc)
+        _rpc_write_bson(self.request, doc)
 
     @classmethod
     def main(cls, name):
@@ -53,8 +53,8 @@ class Client(object):
         if '_fds' in kwargs:
             doc['fds'] = kwargs['_fds']
             kwargs['_fds'] = None
-        write_bson(sock, doc)
-        result = read_bson(sock)
+        _rpc_write_bson(sock, doc)
+        result = _rpc_read_bson(sock)
         if 'error' in result:
             raise RPCError(result['error'])
         return result['result']
@@ -72,7 +72,7 @@ class FD(object):
     def open(self, *args, **kwargs):
         return os.fdopen(self.fileno(), *args, **kwargs)
 
-def write_bson(sock, doc):
+def _rpc_write_bson(sock, doc):
     fds = doc.get('fds', [])
     doc['fds'] = len(fds)
 
@@ -85,7 +85,7 @@ def write_bson(sock, doc):
     sock.sendall(bson.BSON.encode(doc))
     sock.shutdown(socket.SHUT_WR)
 
-def read_bson(sock, allow_fd_passing=False):
+def _rpc_read_bson(sock, allow_fd_passing=False):
     fd_count, = struct.unpack('!I', sock.recv(4))
 
     if fd_count == 0 or allow_fd_passing:
@@ -100,3 +100,11 @@ def read_bson(sock, allow_fd_passing=False):
     elif 'fds' in result:
         del result['fds']
     return result
+
+def bson_load(f):
+    length_data = f.read(4)
+    length, = struct.unpack('<I', length_data)
+    return bson.BSON(length_data + f.read(length - 4)).decode()
+
+def bson_dump(obj, f):
+    f.write(bson.BSON.encode(obj))
