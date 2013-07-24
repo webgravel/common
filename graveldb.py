@@ -43,6 +43,8 @@ class TDBShelf(object):
 def _mkkey(k):
     if isinstance(k, (str, int)):
         return str(k)
+    elif isinstance(k, unicode):
+        return k.encode('utf8')
     else:
         raise TypeError('expected str or int')
 
@@ -58,20 +60,21 @@ def Table(name, path):
     return type(name, (_Table,), {'table': TDB_BSON_Shelf(path + '/' + name)})
 
 class _Table(object):
+    __slots__ = ('data', 'name', 'exists')
     autocreate = True
 
     def __init__(self, name, autocreate=None):
         self.name = name
+        if autocreate is None:
+            autocreate = self.autocreate
         try:
             self.data = self.table[name]
             self.exists = True
-        except:
+        except KeyError:
+            if not autocreate:
+                raise
             self.data = Object()
             self.exists = False
-        if autocreate is None:
-            autocreate = self.autocreate
-        if not self.exists and not autocreate:
-            raise KeyError(name)
         self._setup()
 
     def _setup(self):
@@ -100,6 +103,9 @@ class _Table(object):
 
     def __exit__(self, type, value, tb):
         return self.table.__exit__(type, value, tb)
+
+    def __repr__(self):
+        return '<%s %s: %r>' % (self.__class__.__name__, self.name, self.data.__dict__)
 
     default = {}
 

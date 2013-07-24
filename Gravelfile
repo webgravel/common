@@ -1,5 +1,5 @@
 name: gravel-common
-requires-apt: python2.7 python-tdb python-yaml libpcre3 python-bson-ext python-passfd
+requires-apt: python2.7 python-tdb python-yaml libpcre3 python-bson python-passfd
 symlinks:
 - [dbtool.py, /usr/local/bin/graveldbtool]
 - [rpctool.py, /usr/local/bin/gravelrpctool]

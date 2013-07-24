@@ -1,12 +1,12 @@
 import SocketServer
 import socket
 import functools
-import bson
 import os
 import traceback
 import passfd
 import struct
 
+import bson as _bson
 from bson.binary import Binary
 
 PATH = '/gravel/run/%s.sock'
@@ -82,7 +82,7 @@ def _rpc_write_bson(sock, doc):
             raise TypeError('fds need to be instances of FD (not %r)' % fd)
         passfd.sendfd(sock, fd.fileno(), 'whatever')
 
-    sock.sendall(bson.BSON.encode(doc))
+    sock.sendall(_bson.BSON.encode(doc))
     sock.shutdown(socket.SHUT_WR)
 
 def _rpc_read_bson(sock, allow_fd_passing=False):
@@ -94,17 +94,27 @@ def _rpc_read_bson(sock, allow_fd_passing=False):
         raise IOError('client tried to pass fds')
 
     raw = ''.join(iter(lambda: sock.recv(4096), ''))
-    result = bson.BSON(raw).decode()
+    result = _bson.BSON(raw).decode()
     if fd_count != 0:
         result['fds'] = fds
     elif 'fds' in result:
         del result['fds']
     return result
 
-def bson_load(f):
-    length_data = f.read(4)
-    length, = struct.unpack('<I', length_data)
-    return bson.BSON(length_data + f.read(length - 4)).decode()
+class bson:
+    ''' pickle/marshal/json compatiblity module for BSON '''
+    def load(self, f):
+        length_data = f.read(4)
+        length, = struct.unpack('<I', length_data)
+        return _bson.BSON(length_data + f.read(length - 4)).decode()
 
-def bson_dump(obj, f):
-    f.write(bson.BSON.encode(obj))
+    def dump(self, obj, f):
+        f.write(_bson.BSON.encode(obj))
+
+    def loads(self, s):
+        return _bson.BSON(s).decode()
+
+    def dumps(self, obj):
+        return _bson.BSON.encode(obj)
+
+bson = bson()
