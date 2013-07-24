@@ -82,7 +82,9 @@ class _Table(object):
             if not hasattr(self.data, k):
                 setattr(self.data, k, v)
         self.setup()
-        self.validate()
+        if self.exists:
+            # don't validate defaults
+            self.validate()
 
     def setup(self):
         pass
