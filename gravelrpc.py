@@ -48,7 +48,6 @@ class Client(object):
     def _call(self, name, *args, **kwargs):
         sock = socket.socket(socket.AF_UNIX)
         sock.connect(self._path)
-        f = sock.makefile('r', 0)
         doc = dict(name=name, args=args, kwargs=kwargs)
         if '_fds' in kwargs:
             doc['fds'] = kwargs['_fds']
@@ -116,5 +115,7 @@ class bson:
 
     def dumps(self, obj):
         return _bson.BSON.encode(obj)
+
+    Binary = Binary
 
 bson = bson()
