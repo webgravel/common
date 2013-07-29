@@ -12,11 +12,19 @@ def main_multiple_action(globals):
     globals['action_' + action]()
 
 def call_exe_in_directory(path, exename, args, **kwargs):
-    func = kwargs.setdefault('func', subprocess.check_call)
-    del kwargs['func']
     if exename not in os.listdir(path):
         raise ValueError('invalid command %s (not in %s)' % (exename, path))
-    return func([path + '/' + exename] + args, **kwargs)
+    return generic_call([path + '/' + exename] + args, **kwargs)
+
+def run_hooks(path, args, **kwargs):
+    if os.path.exists(path):
+        for name in os.listdir(path):
+            generic_call([name] + args, **kwargs)
+
+def generic_call(*args, **kwargs):
+    func = kwargs.setdefault('func', subprocess.check_call)
+    del kwargs['func']
+    return func(*args, **kwargs)
 
 def check_if_valid_path_entry(name):
     ok = name.decode('ascii') == name and '/' not in name and '\0' not in name
