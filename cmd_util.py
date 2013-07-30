@@ -19,7 +19,7 @@ def call_exe_in_directory(path, exename, args, **kwargs):
 def run_hooks(path, args, **kwargs):
     if os.path.exists(path):
         for name in os.listdir(path):
-            generic_call([name] + args, **kwargs)
+            generic_call([path + '/' + name] + args, **kwargs)
 
 def generic_call(*args, **kwargs):
     func = kwargs.setdefault('func', subprocess.check_call)
