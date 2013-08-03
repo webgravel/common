@@ -57,10 +57,10 @@ def write_authorized_keys(keys, user=''):
     os.rename(out.name, path)
 
 def call(address, *args, **kwargs):
-    def _get_kwargs(key=None, decode=None, check_output=True):
-        return key, decode, check_output
+    def _get_kwargs(key=None, decode=None, check_output=True, func=None, **rest):
+        return key, decode, check_output, func, rest
 
-    key, decode, check_output = _get_kwargs(**kwargs)
+    key, decode, check_output, func, rest = _get_kwargs(**kwargs)
     if ':' in address:
         hostname, port = address.split(':')
     else:
@@ -71,9 +71,10 @@ def call(address, *args, **kwargs):
         opts += ['-i', key]
     if port:
         opts += ['-p', port]
-    func = subprocess.check_output if check_output else subprocess.check_call
+    if not func:
+        func = subprocess.check_output if check_output else subprocess.check_call
     result = func([
-        'ssh', ] + opts + [hostname, '--'] + list(args))
+        'ssh', ] + opts + [hostname, '--'] + list(args), **rest)
     if decode:
         return decode.loads(result)
     else:
