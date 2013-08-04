@@ -6,7 +6,8 @@ from bson.binary import Binary
 
 class TDBShelf(object):
     def __init__(self, path):
-        self.db = tdb.open(path, flags=os.O_RDWR | os.O_CREAT)
+        mode = os.O_RDWR | os.O_CREAT if os.access(path, os.W_OK) else os.O_RDONLY
+        self.db = tdb.open(path, flags=mode)
 
     def __getitem__(self, name):
         return self._unpickle(self.db[_mkkey(name)])
