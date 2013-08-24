@@ -6,7 +6,8 @@ from bson.binary import Binary
 
 class TDBShelf(object):
     def __init__(self, path):
-        mode = os.O_RDWR | os.O_CREAT if os.access(path, os.W_OK) else os.O_RDONLY
+        write = not os.path.exists(path) or os.access(path, os.W_OK)
+        mode = os.O_RDWR | os.O_CREAT if write else os.O_RDONLY
         self.db = tdb.open(path, flags=mode)
 
     def __getitem__(self, name):
