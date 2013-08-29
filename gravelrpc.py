@@ -19,7 +19,7 @@ class ThreadingUnixServer(SocketServer.ThreadingMixIn, SocketServer.UnixStreamSe
         SocketServer.UnixStreamServer.server_bind(self)
 
 class ThreadingSSLServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-    key = 'example.pem' # TODO
+    key = 'example.pem'
 
     def server_bind(self):
         self.socket = ssl.wrap_socket(self.socket, certfile=self.key, server_side=True)
@@ -97,7 +97,7 @@ class SSLClient(GenericClient):
         return ssl.wrap_socket(sock,
                                ca_certs=self._key,
                                cert_reqs=ssl.CERT_REQUIRED,
-                               server_side=True)
+                               server_side=False)
 
 class FD(object):
     def __init__(self, fileno):
@@ -113,24 +113,27 @@ def _rpc_write_bson(sock, doc):
     fds = doc.get('fds', [])
     doc['fds'] = len(fds)
 
-    sock.send(struct.pack('!I', len(fds)))
+    sock.sendall(struct.pack('!I', len(fds)))
     for fd in fds:
         if not isinstance(fd, FD):
             raise TypeError('fds need to be instances of FD (not %r)' % fd)
         passfd.sendfd(sock, fd.fileno(), 'whatever')
 
-    sock.sendall(_bson.BSON.encode(doc))
-    sock.shutdown(socket.SHUT_WR)
+    msg = _bson.BSON.encode(doc)
+    sock.sendall(struct.pack('!I', len(msg)))
+    sock.sendall(msg)
 
 def _rpc_read_bson(sock, allow_fd_passing=False):
-    fd_count, = struct.unpack('!I', sock.recv(4))
+    sock_file = sock.makefile('r')
+    fd_count, = struct.unpack('!I', sock_file.read(4))
 
     if fd_count == 0 or allow_fd_passing:
         fds = [ FD(passfd.recvfd(sock)[0]) for i in xrange(fd_count) ]
     else:
         raise IOError('client tried to pass fds')
 
-    raw = ''.join(iter(lambda: sock.recv(4096), ''))
+    raw_length, = struct.unpack('!I', sock_file.read(4))
+    raw = sock_file.read(raw_length)
     result = _bson.BSON(raw).decode()
     if fd_count != 0:
         result['fds'] = fds
