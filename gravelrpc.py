@@ -61,10 +61,11 @@ class GenericClient(object):
 
     def _call(self, name, *args, **kwargs):
         sock = self._connect()
-        doc = dict(name=name, args=args, kwargs=dict(self.additional, **kwargs))
+        doc = {}
         if '_fds' in kwargs:
             doc['fds'] = kwargs['_fds']
             kwargs['_fds'] = None
+        doc.update(name=name, args=args, kwargs=dict(self.additional, **kwargs))
         _rpc_write_bson(sock, doc)
         result = _rpc_read_bson(sock)
         if 'error' in result:
