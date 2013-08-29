@@ -33,13 +33,17 @@ class RPCHandler(SocketServer.StreamRequestHandler):
         try:
             if 'fds' in req:
                 req['kwargs']['_fds'] = req['fds']
-            result = getattr(self, 'method_' + req['name'])(*req['args'], **req['kwargs'])
+            args, kwargs = self._preprocess_args(*req['args'], **req['kwargs'])
+            result = getattr(self, 'method_' + req['name'])(*args, **kwargs)
         except Exception as err:
             traceback.print_exc()
             doc = dict(error=str(err))
         else:
             doc = dict(result=result)
         _rpc_write_bson(self.request, doc)
+
+    def _preprocess_args(self, *args, **kwargs):
+        return args, kwargs
 
     @classmethod
     def main(cls, name, server=None):
@@ -52,9 +56,12 @@ class RPCHandler(SocketServer.StreamRequestHandler):
 class RPCError(Exception): pass
 
 class GenericClient(object):
+    def __init__(self):
+        self.additional = {}
+
     def _call(self, name, *args, **kwargs):
         sock = self._connect()
-        doc = dict(name=name, args=args, kwargs=kwargs)
+        doc = dict(name=name, args=args, kwargs=dict(self.additional, **kwargs))
         if '_fds' in kwargs:
             doc['fds'] = kwargs['_fds']
             kwargs['_fds'] = None
@@ -70,6 +77,7 @@ class GenericClient(object):
 class Client(GenericClient):
     def __init__(self, name):
         self._path = PATH % name
+        GenericClient.__init__(self)
 
     def _connect(self):
         sock = socket.socket(socket.AF_UNIX)
@@ -80,6 +88,7 @@ class SSLClient(GenericClient):
     def __init__(self, host, key):
         self._host = host
         self._key = key
+        GenericClient.__init__(self)
 
     def _connect(self):
         sock = socket.socket()
