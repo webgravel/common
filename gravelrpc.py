@@ -5,6 +5,7 @@ import os
 import traceback
 import passfd
 import struct
+import ssl
 
 import bson as _bson
 from bson.binary import Binary
@@ -16,6 +17,13 @@ class ThreadingUnixServer(SocketServer.ThreadingMixIn, SocketServer.UnixStreamSe
         if os.path.exists(self.server_address):
             os.remove(self.server_address)
         SocketServer.UnixStreamServer.server_bind(self)
+
+class ThreadingSSLServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+    key = 'example.pem' # TODO
+
+    def server_bind(self):
+        self.socket = ssl.wrap_socket(self.socket, certfile=self.key, server_side=True)
+        SocketServer.TCPServer.server_bind(self)
 
 class RPCHandler(SocketServer.StreamRequestHandler):
     allow_fd_passing = False
@@ -34,20 +42,18 @@ class RPCHandler(SocketServer.StreamRequestHandler):
         _rpc_write_bson(self.request, doc)
 
     @classmethod
-    def main(cls, name):
-        path = PATH % name
-        serv = ThreadingUnixServer(path, cls)
+    def main(cls, name, server=None):
+        if server is None:
+            name = PATH % name
+            server = ThreadingUnixServer
+        serv = server(name, cls)
         serv.serve_forever()
 
 class RPCError(Exception): pass
 
-class Client(object):
-    def __init__(self, name):
-        self._path = PATH % name
-
+class GenericClient(object):
     def _call(self, name, *args, **kwargs):
-        sock = socket.socket(socket.AF_UNIX)
-        sock.connect(self._path)
+        sock = self._connect()
         doc = dict(name=name, args=args, kwargs=kwargs)
         if '_fds' in kwargs:
             doc['fds'] = kwargs['_fds']
@@ -60,6 +66,29 @@ class Client(object):
 
     def __getattr__(self, name):
         return functools.partial(self._call, name)
+
+class Client(GenericClient):
+    def __init__(self, name):
+        self._path = PATH % name
+
+    def _connect(self):
+        sock = socket.socket(socket.AF_UNIX)
+        sock.connect(self._path)
+        return sock
+
+class SSLClient(GenericClient):
+    def __init__(self, host, key):
+        self._host = host
+        self._key = key
+
+    def _connect(self):
+        sock = socket.socket()
+        sock.connect(self._host)
+        # TODO: key verification
+        return ssl.wrap_socket(sock,
+                               ca_certs=self._key,
+                               cert_reqs=ssl.CERT_REQUIRED,
+                               server_side=True)
 
 class FD(object):
     def __init__(self, fileno):
