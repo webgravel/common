@@ -20,10 +20,11 @@ class ThreadingUnixServer(SocketServer.ThreadingMixIn, SocketServer.UnixStreamSe
 
 class ThreadingSSLServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     key = 'example.pem'
+    allow_reuse_address = True
 
     def server_bind(self):
-        self.socket = ssl.wrap_socket(self.socket, certfile=self.key, server_side=True)
         SocketServer.TCPServer.server_bind(self)
+        self.socket = ssl.wrap_socket(self.socket, certfile=self.key, server_side=True)
 
 class RPCHandler(SocketServer.StreamRequestHandler):
     allow_fd_passing = False
