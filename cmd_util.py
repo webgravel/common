@@ -45,7 +45,7 @@ def call_with_stdin(args, **kwargs):
     del kwargs['stdin_data']
     popen = subprocess.Popen(args, **kwargs)
     popen.stdin.write(stdin_data)
-    popen.stdin.flush()
+    popen.stdin.close()
     retcode = popen.wait()
     if retcode != 0:
         raise subprocess.CalledProcessError(retcode, args)
